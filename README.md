@@ -1,5 +1,5 @@
 Files used -: 
-cart-drawer.liquid
+cart-drawer.liquid ,
 main-product.liquid
 
 
