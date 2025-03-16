@@ -1,57 +1,56 @@
-
-<!-- Cart Drawer -->
 <div id="cartDrawer" class="fixed top-0 right-0 md:w-1/3 w-[90%] h-full bg-white shadow-lg transform translate-x-full transition-transform duration-300 ease-in-out z-50">
   <div class="p-6 flex justify-between items-center border-b">
     <h2 class="text-xl font-semibold">Your Cart</h2>
     <button onclick="toggleCartDrawer()" class="text-gray-500 hover:text-gray-700">&times;</button>
   </div>
-  <div id="cartItems" class="p-6 space-y-4 overflow-y-auto h-[70%]">
-    <!-- Cart items will be dynamically inserted here -->
+  <div class="p-6 border-t">
+    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+      <div id="progressBar" class="h-2 bg-black rounded-full" style="width: 0%"></div>
+
+    </div>
+    <p id="freeDeliveryMessage" class="text-lg font-semibold text-gray-600">Add more items to your cart to get free delivery on orders over $500!</p>
   </div>
+  <div id="cartItems" class="p-6 space-y-4 overflow-y-auto h-[70%]"></div>
   <div class="p-6 border-t flex justify-between items-center">
-    <span class="text-lg font-semibold">Total:</span>
-    <span id="cartTotal" class="text-lg font-bold">$0.00</span>
+    <span class="text-2xl font-semibold">Total:</span>
+    <span id="cartTotal" class="text-2xl font-bold">$0.00</span>
   </div>
   <div class="p-6 border-t">
-    <button onclick="window.location='/cart'" class="w-full bg-blue-600 text-white py-2 rounded-lg">Go to Checkout</button>
+    <button onclick="window.location='/cart'" class="w-full bg-[#5900FF] text-white py-2 rounded-lg">Go to Checkout</button>
+
   </div>
-  <!-- <div class="p-6 border-t flex justify-between">
-  <button onclick="clearCart()" class="w-full bg-red-600 text-white py-2 rounded-lg">Clear All</button>
-</div> -->
-
+  <div class="p-6 border-t flex justify-between">
+    <button onclick="clearCart()" class="w-full bg-red-600 text-white py-2 rounded-lg">Clear All</button>
+  </div>
 </div>
-
 <div id="cartOverlay" 
   class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-md z-40 hidden">
 </div>
 
+
+
 <script>
-  function toggleCartDrawer(open = null) {
-    const cartDrawer = document.getElementById('cartDrawer');
-    const cartOverlay = document.getElementById('cartOverlay');
-
-    if (open === true || (open === null && cartDrawer.classList.contains('translate-x-full'))) {
-      cartDrawer.classList.remove('translate-x-full');
-      cartOverlay.classList.remove('hidden');
-    } else {
-      cartDrawer.classList.add('translate-x-full');
-      cartOverlay.classList.add('hidden');
-    }
+function toggleCartDrawer(open = null) {
+  const cartDrawer = document.getElementById('cartDrawer');
+  const cartOverlay = document.getElementById('cartOverlay');
+  if (open === true || (open === null && cartDrawer.classList.contains('translate-x-full'))) {
+    cartDrawer.classList.remove('translate-x-full');
+    cartOverlay.classList.remove('hidden');
+  } else {
+    cartDrawer.classList.add('translate-x-full');
+    cartOverlay.classList.add('hidden');
   }
+}
 
-  function addToCart(event) {
+function addToCart(event) {
   event.preventDefault();
-
   const formData = new FormData(event.target);
-  const embroideryCheckbox = document.getElementById('embroideryCheckbox'); // Ensure correct ID
-  let productPrice = parseFloat("{{ product.price | divided_by: 100 }}"); 
-  let finalPrice = productPrice; // Default price without embroidery
-
-  // Only add embroidery properties if checkbox is checked
+  const embroideryCheckbox = document.getElementById('embroideryCheckbox');
+  let productPrice = parseFloat("{{ product.price | divided_by: 100 }}");
+  let finalPrice = productPrice;
   if (embroideryCheckbox?.checked) {
     const embroideryPrice = parseFloat(document.getElementById('selectedPrice')?.value || "0");
-    finalPrice += embroideryPrice; // Add embroidery price
-
+    finalPrice += embroideryPrice;
     if (embroideryPrice > 0) {
       formData.append('properties[Embroidery Price]', `$${embroideryPrice.toFixed(2)}`);
     }
@@ -59,7 +58,7 @@
     if (embroideryText) {
       formData.append('properties[Embroidery Text]', embroideryText);
     }
-    const embroideryColor = document.getElementById('embroideryColor')?.value;
+    const embroideryColor = document.getElementById('selectedColorText')?.value;
     if (embroideryColor) {
       formData.append('properties[Embroidery Color]', embroideryColor);
     }
@@ -68,15 +67,11 @@
       formData.append('properties[Embroidery Font]', embroideryFont);
     }
   }
-
-  // Fetch the cart to check if the product already exists
   fetch('/cart.js')
     .then(response => response.json())
     .then(cart => {
       let existingItem = cart.items.find(item => item.product_id === "{{ product.id }}" && JSON.stringify(item.properties) === JSON.stringify(Object.fromEntries(formData)));
-
       if (existingItem) {
-        // If the product already exists, increase its quantity
         fetch('/cart/change.js', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -85,66 +80,68 @@
             quantity: existingItem.quantity + 1,
           }),
         })
-        .then(response => response.json())
-        .then(() => {
-          updateCartDrawer();  
-          toggleCartDrawer(true); 
-        })
-        .catch(error => console.error("Error updating cart quantity:", error));
+          .then(response => response.json())
+          .then(() => {
+            updateCartDrawer();
+            toggleCartDrawer(true);
+          })
+          .catch(error => console.error("Error updating cart quantity:", error));
       } else {
-        // If not, add a new item
         fetch('/cart/add.js', {
           method: 'POST',
           body: formData,
         })
-        .then(response => response.json())
-        .then(() => {
-          updateCartDrawer();  
-          toggleCartDrawer(true); 
-          event.target.reset();
-        })
-        .catch(error => console.error("Error adding to cart:", error));
+          .then(response => response.json())
+          .then(() => {
+            updateCartDrawer();
+            toggleCartDrawer(true);
+            event.target.reset();
+          })
+          .catch(error => console.error("Error adding to cart:", error));
       }
     })
     .catch(error => console.error("Error fetching cart:", error));
 }
 
-
-  function updateCartDrawer() {
+function updateCartDrawer() {
   fetch('/cart.js')
     .then(response => response.json())
     .then(cart => {
       const cartItemsContainer = document.getElementById('cartItems');
       const cartTotalElement = document.getElementById('cartTotal');
-      cartItemsContainer.innerHTML = ''; 
-
-      let totalCartPrice = 0; // Initialize total price
-
+      const progressBar = document.getElementById('progressBar');
+      const freeDeliveryMessage = document.getElementById('freeDeliveryMessage');
+      cartItemsContainer.innerHTML = '';
+      let totalCartPrice = 0;
+      
       if (cart.items.length === 0) {
         cartItemsContainer.innerHTML = `<p class="text-center text-gray-600">Your cart is empty.</p>`;
-        cartTotalElement.textContent = "$0.00"; // Set total price to $0.00 if empty
+        cartTotalElement.textContent = "$0.00";
+      
+        if (progressBar) progressBar.style.display = "none";
+        if (freeDeliveryMessage) freeDeliveryMessage.style.display = "none";
+
         return;
+      } else {
+        if (progressBar) progressBar.style.display = "block";
+        if (freeDeliveryMessage) freeDeliveryMessage.style.display = "block";
       }
 
       cart.items.forEach(item => {
         let embroideryPrice = parseFloat((item.properties?.["Embroidery Price"] || "$0").replace("$", ""));
-        let productPrice = (item.line_price / item.quantity) / 100; // Single item price
-        let totalPrice = (productPrice * item.quantity); // Default price without embroidery
-
-        // Check if the checkbox is unchecked and subtract the embroidery price
+        let productPrice = (item.line_price / item.quantity) / 100;
+        let totalPrice = (productPrice * item.quantity);
         const checkbox = document.querySelector(`.cart-item-checkbox[data-item-key="${item.key}"]`);
         if (checkbox && !checkbox.checked) {
-          totalPrice -= embroideryPrice; // Subtract embroidery price if checkbox is unchecked
+          totalPrice -= embroideryPrice;
+          embroideryDetails = "";
         } else {
-          totalPrice += embroideryPrice; // Add embroidery price if checkbox is checked
+          totalPrice += embroideryPrice;
         }
-
-        totalCartPrice += totalPrice; // Accumulate total cart price
-
+        totalCartPrice += totalPrice;
         let embroideryDetails = '';
         if (item.properties?.["Embroidery Price"] || item.properties?.["Embroidery Text"] || item.properties?.["Embroidery Color"] || item.properties?.["Embroidery Font"]) {
           embroideryDetails = `<p class="px-4 text-sm text-gray-600">Embroidered Name:`;
-
           if (item.properties?.["Embroidery Price"]) {
             embroideryDetails += `<span class="text-blue-500">+ ${item.properties["Embroidery Price"]}</span>`;
           }
@@ -157,10 +154,8 @@
           if (item.properties?.["Embroidery Font"]) {
             embroideryDetails += ` • Font: ${item.properties["Embroidery Font"]}`;
           }
-
           embroideryDetails += `</p>`;
         }
-
         cartItemsContainer.innerHTML += `
           <div class="p-2 border rounded">
             <div class="flex items-center gap-4 p-2">
@@ -173,128 +168,115 @@
               </div>
               <div class="flex-1 flex flex-col gap-14 items-end">
                 <p class="text-gray-800 font-bold mt-1" id="price-${item.key}">$${totalPrice.toFixed(2)}</p>
-                <button onclick="removeFromCart('${item.key}')" class="text-red-500 underline text-lg">Remove</button>
+                <button onclick="removeFromCart('${item.key}')" class="text-black-500 underline text-lg">Remove</button>
               </div>
             </div>
             <span class="flex flex-col justify-start">
               <div class="flex items-center">
-                <input type="checkbox" class="mr-3 cart-item-checkbox" data-item-key="${item.key}" ${embroideryDetails ? 'checked' : ''}>
+                <input type="checkbox" class="mr-3 cart-item-checkbox accent-black" data-item-key="${item.key}" ${embroideryPrice > 0 ? 'checked' : ''}>
                 <p class="px-2">Add Embroidered Name (+$${embroideryPrice.toFixed(2)})</p>
               </div>
-              <p class="px-2">${embroideryDetails}</p> 
+              <p class="px-2">${embroideryDetails}</p>
             </span>
-          </div> 
-        `;
+          </div>`;
       });
-
-      // Update total cart price at the bottom
       cartTotalElement.textContent = `$${totalCartPrice.toFixed(2)}`;
+      const freeDeliveryThreshold = 500;
+      const remainingAmount = freeDeliveryThreshold - totalCartPrice;
+      const progressPercentage = totalCartPrice >= freeDeliveryThreshold ? 100 : (totalCartPrice / freeDeliveryThreshold) * 100;
+      progressBar.style.width = `${progressPercentage}%`;
+      if (totalCartPrice >= freeDeliveryThreshold) {
+        freeDeliveryMessage.textContent = "Free delivery applied!";
+        freeDeliveryMessage.classList.remove('text-gray-600');
+        freeDeliveryMessage.classList.add('text-black-600');
+      } else {
+        freeDeliveryMessage.textContent = `Add $${remainingAmount.toFixed(2)} more for free delivery`;
+        freeDeliveryMessage.classList.remove('text-green-600');
+        freeDeliveryMessage.classList.add('text-gray-600');
+      }
     })
     .catch(error => console.error('Error fetching cart:', error));
 }
 
-
-
-  function updateCartQuantity(itemKey, newQuantity) {
-  fetch('/cart.js')
+function updateCartQuantity(itemKey, newQuantity) {
+  fetch('/cart/change.js', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: itemKey, quantity: newQuantity }),
+  })
     .then(response => response.json())
-    .then(cart => {
-      if (!cart.items || !Array.isArray(cart.items)) {
-        console.error('Cart items are undefined or not an array');
-        return;
-      }
+    .then(() => updateCartDrawer())
+    .catch(error => console.error('Error updating quantity:', error));
+}
 
-      let updatedItem = cart.items.find(item => item.key === itemKey);
-      if (!updatedItem) {
-        console.error('Item not found in cart');
-        return;
-      }
+function removeFromCart(itemKey) {
+  fetch('/cart/change.js', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: itemKey, quantity: 0 }),
+  })
+    .then(response => response.json())
+    .then(() => updateCartDrawer())
+    .catch(error => console.error('Error removing item:', error));
+}
 
-      fetch('/cart/change.js', {
+function removeFromCart(itemKey) {
+    fetch('/cart/change.js', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: itemKey, quantity: newQuantity }),
-      })
-      .then(response => response.json())
-      .then(() => updateCartDrawer()) // Refresh the cart drawer
-      .catch(error => console.error('Error updating quantity:', error));
-    })
-    .catch(error => console.error('Error fetching cart:', error));
-}
-
-
-  function removeFromCart(itemKey) {
-    fetch('/cart/change.js', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: itemKey, quantity: 0 }),
+        body: JSON.stringify({ id: itemKey, quantity: 0 })
     })
     .then(response => response.json())
     .then(() => updateCartDrawer())
     .catch(error => console.error('Error removing item:', error));
-  }
-  
-//   function clearCart() {
-//   fetch('/cart/clear.js', {
-//     method: 'POST',
-//   })
-//   .then(response => response.json())
-//   .then(() => {
-//     updateCartDrawer(); // Refresh the cart drawer after clearing
-//     console.log("Cart cleared successfully");
-//   })
-//   .catch(error => console.error("Error clearing cart:", error));
-// }
+}
+
+function clearCart() {
+    fetch('/cart/clear.js', { method: 'POST' })
+    .then(response => response.json())
+    .then(() => {
+        updateCartDrawer();
+        console.log("Cart cleared successfully");
+    })
+    .catch(error => console.error("Error clearing cart:", error));
+}
+
 document.getElementById('cartOverlay').addEventListener('click', () => {
-  toggleCartDrawer(false); // Close the drawer when clicking outside
+    toggleCartDrawer(false);
 });
 
 document.getElementById('cartItems').addEventListener('change', function(e) {
-  if (e.target.classList.contains('cart-item-checkbox')) {
-    const checkbox = e.target;
-    const isChecked = checkbox.checked;
-    const itemKey = checkbox.dataset.itemKey; // Getting item key
-    const embroideryPrice = parseFloat(checkbox.closest('.p-2').querySelector('p.text-blue-500')?.textContent.replace('+', '').replace('$', '') || "0");
+    if (e.target.classList.contains('cart-item-checkbox')) {
+        const checkbox = e.target;
+        const isChecked = checkbox.checked;
+        const itemKey = checkbox.dataset.itemKey;
+        const embroideryPrice = parseFloat(checkbox.closest('.p-2').querySelector('p.text-blue-500')?.textContent.replace('+', '').replace('$', '') || "0");
+        const escapedItemKey = itemKey.replace(/([:#.])/g, '\\$1');
+        let productPrice = parseFloat(checkbox.closest('.p-2').querySelector('#price-' + escapedItemKey)?.textContent.replace('$', '') || "0");
+        const previousState = checkbox.checked;
 
-    // Escape invalid characters in itemKey for use in querySelector
-    const escapedItemKey = itemKey.replace(/([:#.])/g, '\\$1');
+        if (isChecked) {
+            productPrice += embroideryPrice;
+        } else {
+            productPrice -= embroideryPrice;
+        }
 
-    // Get the product price and adjust for embroidery
-    let productPrice = parseFloat(checkbox.closest('.p-2').querySelector('#price-' + escapedItemKey)?.textContent.replace('$', '') || "0");
-
-    // Store the checkbox state before the update
-    const previousState = checkbox.checked;
-
-    if (isChecked) {
-      // If checked, add the embroidery price to the product price
-      productPrice += embroideryPrice;
-    } else {
-      // If unchecked, subtract the embroidery price
-      productPrice -= embroideryPrice;
+        fetch('/cart/change.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: itemKey,
+                properties: { "Embroidery Price": isChecked ? `$${embroideryPrice.toFixed(2)}` : "$0.00" },
+                quantity: 1
+            })
+        })
+        .then(response => response.json())
+        .then(() => {
+            checkbox.checked = previousState;
+            updateCartDrawer();
+        })
+        .catch(error => console.error("Error updating cart:", error));
     }
-
-    // Update the product price in the cart
-    fetch('/cart/change.js', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: itemKey,
-        properties: { "Embroidery Price": isChecked ? `$${embroideryPrice.toFixed(2)}` : "$0.00" }, // Update the embroidery property
-        quantity: 1 // You can adjust the quantity as per your requirement
-      }),
-    })
-    .then(response => response.json())
-    .then(() => {
-      // After the cart update, manually reset the checkbox state
-      checkbox.checked = previousState;
-
-      // Update the cart drawer after modification
-      updateCartDrawer();
-    })
-    .catch(error => console.error("Error updating cart:", error));
-  }
 });
-
-
 
 </script>

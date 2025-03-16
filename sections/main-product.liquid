@@ -1,24 +1,20 @@
 {% layout 'theme' %}
-
 {% assign product = product %}
 {% assign embroidery_enabled = product.metafields.custom.enable_embroidery | default: false %}
 {% assign embroidery_image = product.metafields.custom.embroidery_image %}
 {% assign char_limit = product.metafields.custom.character_limit | default: 20 %}
 {% assign embroidery_fonts = product.metafields.custom.embroidery_fonts | default: "" | split: "|" %}
-{% assign embroidery_colorss = product.metafields.custom.embroidery_colorss.value | default: ""  %}
+{% assign embroidery_colorss = product.metafields.custom.embroidery_colorss.value | default: "" %}
 {% assign embroidery_color_prices = product.metafields.custom.embroidery_color_prices | split: "," %}
 
 <div class="w-full mx-auto px-6 py-12 md:px-12 md:py-16 lg:px-32 lg:py-32">
   <nav class="text-lg text-gray-500 mb-4 lg:px-32">
-  <a href="/" class="hover:underline text-gray-900">Home</a> / 
-  <a href="/collections/all" class="hover:underline text-gray-900">Clothing</a> / 
-  <span class="text-gray-900">{{ product.title }}</span>
-</nav>
-
-
+    <a href="/" class="hover:underline text-gray-900">Home</a> / 
+    <a href="/collections/all" class="hover:underline text-gray-900">Clothing</a> / 
+    <span class="text-gray-900">{{ product.title }}</span>
+  </nav>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-28 md:px-12 md:py-16 lg:px-32 lg:py-12">
     <div class="max-w-full">
-      <!-- Main Image -->
       <div class="relative mb-4">
         <img src="{{ product.featured_image | img_url: 'large' }}" alt="Featured Image" class="w-full h-[400px] md:h-[600px] object-contain rounded-lg" id="main-image">
         <div class="absolute top-0 left-0 right-0 bottom-0 flex justify-between items-center">
@@ -26,168 +22,201 @@
           <button id="next-btn" class="p-2 bg-white bg-opacity-50 text-gray-800 rounded-full hover:bg-opacity-75 transition">→</button>
         </div>
       </div>
-
-      <!-- Thumbnail Images -->
-     <div class="flex space-x-4 overflow-x-auto py-4 ">
-  {% for image in product.images %}
-  <div class="flex-shrink-0 w-24 sm:w-32 md:w-36 h-24 sm:h-32 md:h-36 bg-gray-100 rounded-lg p-2 cursor-pointer">
-    <img src="{{ image | img_url: 'medium' }}" alt="Thumbnail" class="w-full h-full object-cover rounded-lg" data-large="{{ image | img_url: 'large' }}" onclick="changeImage(event)">
-  </div>
-  {% endfor %}
-</div>
-
+      <div class="flex space-x-4 overflow-x-auto py-4">
+        {% for image in product.images %}
+        <div class="flex-shrink-0 w-24 sm:w-32 md:w-36 h-24 sm:h-32 md:h-36 bg-gray-100 rounded-lg p-2 cursor-pointer">
+          <img src="{{ image | img_url: 'medium' }}" alt="Thumbnail" class="w-full h-full object-cover rounded-lg" data-large="{{ image | img_url: 'large' }}" onclick="changeImage(event)">
+        </div>
+        {% endfor %}
+      </div>
     </div>
-
     <div class="w-full">
       <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">{{ product.title }}</h1>
       <p class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-700 mt-2">{{ product.price | money }}</p>
       <div class="flex items-center mt-2">
-        {% for i in (1..4) %}
-          <span class="text-yellow-400">★</span>
-        {% endfor %}
-        <span class="text-gray-400">★</span>
+        {% for i in (1..4) %}<span class="text-yellow-400">★</span>{% endfor %}<span class="text-gray-400">★</span>
       </div>
-
-      <p class="text-gray-600 mt-4 text-base md:text-lg">{{ product.description }}</p>     
-
-      <form method="post" action="/cart/add" onsubmit="addToCart(event)">
+      <p class="text-gray-600 mt-4 text-base md:text-lg">{{ product.description }}</p>
+      <form method="post" action="/cart/add" onsubmit="addToCart(event)" id="embroideryForm">
         <input type="hidden" name="id" value="{{ product.variants.first.id }}">
-
         {% if embroidery_enabled %}
         <div class="mt-6">
           <label class="inline-flex items-center">
-            <input type="checkbox" id="embroideryCheckbox" class="form-checkbox h-5 w-5 text-blue-600" onclick="toggleEmbroidery()">
-            <span class="ml-2 text-gray-900">Add Embroidered Name</span>
+            <input type="checkbox" id="embroideryCheckbox" class="form-checkbox h-5 w-5 text-blue-600 accent-black" onclick="toggleEmbroidery()">
+            <span class="ml-2 text-gray-900 ">Add Embroidered Name</span>
           </label>
         </div>
-
         <div id="embroiderySection" class="mt-4 p-4 border rounded-lg bg-gray-50 hidden">
           <div class="flex flex-col md:flex-row justify-between items-start gap-6">
-            <!-- Left Side (Text input, colors, and fonts) -->
             <div class="flex-1">
               <div>
                 <label class="block text-sm md:text-base font-medium text-gray-700">Add up to {{ char_limit }} characters</label>
                 <input type="text" name="properties[Embroidery Text]" maxlength="{{ char_limit }}" class="w-full px-3 py-2 border rounded-lg focus:ring focus:ring-blue-300" placeholder="Enter text">
               </div>
-
               {% if embroidery_colorss and embroidery_colorss.size > 0 %}
               <label class="block mt-4 text-sm md:text-base font-medium text-gray-700">Choose letter color:</label>
               <div class="color-container flex flex-wrap gap-2">
                 {% for color in embroidery_colorss %}
-                  {% assign index = forloop.index0 %}
-                  {% assign price = embroidery_color_prices[index] | default: "0" %}
-
-                  <button 
-                    type="button" 
-                    class="w-16 h-16 rounded-full border-4 border-gray-300 flex items-center justify-center cursor-pointer transition-all duration-200"
-                    style="background-color: {{ color }};"
-                    onclick="highlightSelection(this, '.color-container', 'selectedColor', '{{ color }}', 'selectedPriceText', '{{ price }}')">
-                  </button>
+                {% assign index = forloop.index0 %}
+                {% assign price = embroidery_color_prices[index] | default: "0" %}
+                <button type="button" class="w-16 h-16 rounded-full border-4 border-gray-300 flex items-center justify-center cursor-pointer transition-all duration-200" style="background-color: {{ color }};" onclick="highlightSelection(this, '.color-container', 'selectedColor', '{{ color }}', 'selectedPriceText', '{{ price }}')"></button>
                 {% endfor %}
               </div>
               <p id="selectedPriceText" class="text-lg font-semibold mt-2">$0</p>
+                <p id="selectedColorText" class="text-lg font-semibold mt-2"></p>
               <input type="hidden" name="properties[Embroidery Color]" id="selectedColor">
               <input type="hidden" name="properties[Embroidery Price]" id="selectedPrice">
               {% endif %}
-
               {% if embroidery_fonts.size > 0 %}
               <label class="block mt-4 text-sm md:text-base font-medium text-gray-700">Choose font:</label>
               <div class="font-container flex flex-wrap gap-2">
                 {% for font in embroidery_fonts %}
-                  {% assign font_parts = font | split: ":" %}
-                  <button 
-                    type="button" 
-                    class="px-4 py-2 border rounded-lg font-semibold text-gray-900 transition-all duration-200"
-                    style="font-family: {{ font_parts[1] | strip }};" 
-                    onclick="highlightSelection(this, '.font-container', 'selectedFont', '{{ font_parts[1] | strip }}')">
-                    {{ font_parts[0] | strip }}
-                  </button>
+                {% assign font_parts = font | split: ":" %}
+                <button type="button" class="px-4 py-2 border rounded-lg font-semibold text-gray-900 transition-all duration-200" style="font-family: {{ font_parts[1] | strip }};" onclick="highlightSelection(this, '.font-container', 'selectedFont', '{{ font_parts[1] | strip }}')">{{ font_parts[0] | strip }}</button>
                 {% endfor %}
               </div>
               <input type="hidden" name="properties[Embroidery Font]" id="selectedFont">
               {% endif %}
+             <p class="text-sm md:text-base lg:text-lg text-gray-600 font-medium">
+              Unfortunately, we cannot accept returns or exchanges on embroidered items.
+            </p>
+
             </div>
-
-            <!-- Right Side (Embroidery Image) -->
-           {% if embroidery_image %}
-    <div class="w-30 sm:w-40 md:w-50 lg:w-60 h-30 sm:h-30 md:h-50 lg:h-60">
-    <img src="{{ embroidery_image | img_url: '600x600' }}" class="w-full h-full object-contain rounded-lg shadow-md">
-  </div>
-{% endif %}
-
-
-
-
-
-
+            {% if embroidery_image %}
+            <div class="w-30 sm:w-40 md:w-50 lg:w-60 h-30 sm:h-30 md:h-50 lg:h-60">
+              <img src="{{ embroidery_image | img_url: '600x600' }}" class="w-full h-full object-contain rounded-lg shadow-md">
+            </div>
+            {% endif %}
           </div>
         </div>
         {% endif %}
-  
-        <button type="submit" class="mt-4 bg-blue-600 text-white px-10 py-4 text-lg md:text-xl lg:text-2xl rounded-2xl w-full md:w-[300px] lg:w-[400px] lg:px-14 lg:py-5">
+        <button type="submit" class="mt-4 bg-[#5900FF] text-white px-10 py-4 text-lg md:text-xl lg:text-2xl rounded-lg w-full md:w-[300px] lg:w-[400px] lg:px-14 lg:py-5">
   Add to Cart
 </button>
-
-
       </form>
     </div>
   </div>
 </div>
 
+
 <script>
-  function updateMainImage(imageSrc) {
-    document.getElementById('mainImage').src = imageSrc;
-  }
-
-  function toggleEmbroidery() {
-    const checkbox = document.getElementById('embroideryCheckbox');
-    const section = document.getElementById('embroiderySection');
-    section.classList.toggle('hidden', !checkbox.checked);
-  }
-
-  function highlightSelection(button, containerSelector, inputId, value, priceId = null, price = null) {
-  // Remove highlight from all buttons in the same container
+function updateMainImage(imageSrc) {
+  document.getElementById('mainImage').src = imageSrc;
+}
+function toggleEmbroidery() {
+  const checkbox = document.getElementById('embroideryCheckbox');
+  const section = document.getElementById('embroiderySection');
+  section.classList.toggle('hidden', !checkbox.checked);
+}
+function highlightSelection(button, containerSelector, inputId, value, priceId = null, price = null) {
   document.querySelectorAll(`${containerSelector} .border-black`).forEach(btn => {
     btn.classList.remove('border-black', 'border-4');
     btn.classList.add('border-gray-300');
   });
 
-  // Highlight the selected button
   button.classList.remove('border-gray-300');
   button.classList.add('border-black', 'border-4');
 
-  // Update the hidden input field
   document.getElementById(inputId).value = value;
-
-  // If price exists (for colors), update price display
-  if (priceId && price !== null) {
-    document.getElementById(priceId).innerText = "Price: $" + price;
-    document.getElementById('selectedPrice').value = price;
+  if (containerSelector === ".color-container") {
+    if (priceId && price !== null) {
+      document.getElementById(priceId).innerText = "Price: $" + price;
+      document.getElementById('selectedPrice').value = price;
+    }
+    const selectedColor = "Selected Color: " + value;
+    document.getElementById('selectedColorText').innerText = selectedColor;
   }
 }
 
-    const mainImage = document.getElementById('main-image');
-  const thumbnails = document.querySelectorAll('[data-large]');
-  let currentIndex = 0;
+
+function closeEmbroiderySection() {
+  document.getElementById('embroiderySection').classList.add('hidden');
+}
+document.getElementById('embroideryForm').addEventListener('submit', function(event) {
+closeEmbroiderySection();
+});
+const mainImage = document.getElementById('main-image');
+const thumbnails = document.querySelectorAll('[data-large]');
+let currentIndex = 0;
+function changeImage(event) {
+  const newImageUrl = event.target.dataset.large;
+  mainImage.src = newImageUrl;
+  currentIndex = Array.from(thumbnails).indexOf(event.target);
+}
+document.getElementById('next-btn').addEventListener('click', () => {
+currentIndex = (currentIndex + 1) % thumbnails.length;
+mainImage.src = thumbnails[currentIndex].dataset.large;
+});
+document.getElementById('prev-btn').addEventListener('click', () => {
+currentIndex = (currentIndex - 1 + thumbnails.length) % thumbnails.length;
+mainImage.src = thumbnails[currentIndex].dataset.large;
+});
+
+
+  const colors = {
+  "#000000": "Black",
+  "#FFFFFF": "White",
+  "#FF0000": "Red",
+  "#00FF00": "Green",
+  "#0000FF": "Blue",
+  "#FFFF00": "Yellow",
+  "#FFA500": "Orange",
+  "#800080": "Purple",
+  "#FFC0CB": "Pink",
+  "#808080": "Gray",
+  "#A52A2A": "Brown",
+  "#008080": "Teal",
+  "#00FFFF": "Cyan",
+};
+
+function getClosestColorName(hex) {
+  let closestColor = "Unknown Color";
+  let smallestDiff = Infinity;
   
-  // Function to change the main image when a thumbnail is clicked
-  function changeImage(event) {
-    const newImageUrl = event.target.dataset.large;
-    mainImage.src = newImageUrl;
-    currentIndex = Array.from(thumbnails).indexOf(event.target);
+  function hexToRgb(hex) {
+    let bigint = parseInt(hex.substring(1), 16);
+    return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
   }
-  
-  // Button functionality to switch between images using arrows
-  document.getElementById('next-btn').addEventListener('click', () => {
-    currentIndex = (currentIndex + 1) % thumbnails.length;
-    mainImage.src = thumbnails[currentIndex].dataset.large;
+
+  const [r1, g1, b1] = hexToRgb(hex);
+
+  for (const [key, name] of Object.entries(colors)) {
+    const [r2, g2, b2] = hexToRgb(key);
+    let diff = Math.sqrt(
+      Math.pow(r2 - r1, 2) + Math.pow(g2 - g1, 2) + Math.pow(b2 - b1, 2)
+    );
+
+    if (diff < smallestDiff) {
+      smallestDiff = diff;
+      closestColor = name;
+    }
+  }
+
+  return closestColor;
+}
+
+function highlightSelection(button, containerSelector, inputId, value, priceId = null, price = null) {
+  document.querySelectorAll(`${containerSelector} .border-black`).forEach(btn => {
+    btn.classList.remove('border-black', 'border-4');
+    btn.classList.add('border-gray-300');
   });
-  
-  document.getElementById('prev-btn').addEventListener('click', () => {
-    currentIndex = (currentIndex - 1 + thumbnails.length) % thumbnails.length;
-    mainImage.src = thumbnails[currentIndex].dataset.large;
-  });
+
+  button.classList.remove('border-gray-300');
+  button.classList.add('border-black', 'border-4');
+
+  document.getElementById(inputId).value = value;
+
+  if (containerSelector === ".color-container") {
+    const colorName = getClosestColorName(value);
+    document.getElementById('selectedColorText').innerText = "Selected Color: " + colorName;
+
+    if (priceId && price !== null) {
+      document.getElementById(priceId).innerText = "Price: $" + price;
+      document.getElementById('selectedPrice').value = price;
+    }
+  }
+}
 
 </script>
-
+<script src="{{ 'embroidery.js' | asset_url }}" defer></script>
 {% include 'cart-drawer' %}
