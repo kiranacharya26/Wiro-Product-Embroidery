@@ -27,8 +27,6 @@
   class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-md z-40 hidden">
 </div>
 
-
-
 <script>
 function toggleCartDrawer(open = null) {
   const cartDrawer = document.getElementById('cartDrawer');
@@ -111,13 +109,15 @@ function updateCartDrawer() {
       const cartTotalElement = document.getElementById('cartTotal');
       const progressBar = document.getElementById('progressBar');
       const freeDeliveryMessage = document.getElementById('freeDeliveryMessage');
+       const productHandle = "{{ product.handle }}";
+      const embroidery_colorss = {{ product.metafields.custom.embroidery_colorss.value | json }};
+      const embroidery_fonts = {{ product.metafields.custom.embroidery_fonts | split: "|" | json }};
       cartItemsContainer.innerHTML = '';
       let totalCartPrice = 0;
-      
       if (cart.items.length === 0) {
         cartItemsContainer.innerHTML = `<p class="text-center text-gray-600">Your cart is empty.</p>`;
         cartTotalElement.textContent = "$0.00";
-      
+
         if (progressBar) progressBar.style.display = "none";
         if (freeDeliveryMessage) freeDeliveryMessage.style.display = "none";
 
@@ -130,34 +130,32 @@ function updateCartDrawer() {
       cart.items.forEach(item => {
         let embroideryPrice = parseFloat((item.properties?.["Embroidery Price"] || "$0").replace("$", ""));
         let productPrice = (item.line_price / item.quantity) / 100;
-        let totalPrice = (productPrice * item.quantity);
-        const checkbox = document.querySelector(`.cart-item-checkbox[data-item-key="${item.key}"]`);
-        if (checkbox && !checkbox.checked) {
-          totalPrice -= embroideryPrice;
-          embroideryDetails = "";
-        } else {
-          totalPrice += embroideryPrice;
-        }
+        let totalPrice = (productPrice * item.quantity) + (embroideryPrice * item.quantity);
         totalCartPrice += totalPrice;
+        let embroideryColor = item.properties?.["Embroidery Color"];
+        let colorName = embroideryColor ? getClosestColorName(embroideryColor) : "No color selected";
+
         let embroideryDetails = '';
         if (item.properties?.["Embroidery Price"] || item.properties?.["Embroidery Text"] || item.properties?.["Embroidery Color"] || item.properties?.["Embroidery Font"]) {
-          embroideryDetails = `<p class="px-4 text-sm text-gray-600">Embroidered Name:`;
+          embroideryDetails = `<p class="px-4 text-md text-gray-600 mt-4">Embroidered Details:`;
           if (item.properties?.["Embroidery Price"]) {
-            embroideryDetails += `<span class="text-blue-500">+ ${item.properties["Embroidery Price"]}</span>`;
+            embroideryDetails += `• Price: <span class="text-blue-500 ">  + ${item.properties["Embroidery Price"]}</span>`;
           }
           if (item.properties?.["Embroidery Text"]) {
             embroideryDetails += ` • Text: ${item.properties["Embroidery Text"]}`;
           }
           if (item.properties?.["Embroidery Color"]) {
-            embroideryDetails += ` • Color: ${item.properties["Embroidery Color"]}`;
+            embroideryDetails += ` • Color: ${colorName}`;
           }
           if (item.properties?.["Embroidery Font"]) {
             embroideryDetails += ` • Font: ${item.properties["Embroidery Font"]}`;
           }
           embroideryDetails += `</p>`;
         }
+
+        // Add item to cart HTML
         cartItemsContainer.innerHTML += `
-          <div class="p-2 border rounded">
+          <div class="p-2 border rounded" data-item-key="${item.key}">
             <div class="flex items-center gap-4 p-2">
               <img src="${item.image}" class="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 object-cover rounded flex-shrink-0">
               <div class="flex-1 flex flex-col gap-14 items-start">
@@ -172,19 +170,65 @@ function updateCartDrawer() {
               </div>
             </div>
             <span class="flex flex-col justify-start">
-              <div class="flex items-center">
-                <input type="checkbox" class="mr-3 cart-item-checkbox accent-black" data-item-key="${item.key}" ${embroideryPrice > 0 ? 'checked' : ''}>
-                <p class="px-2">Add Embroidered Name (+$${embroideryPrice.toFixed(2)})</p>
+              <div class="flex flex-col">
+                <div class="flex items-center">
+                  <input type="checkbox" 
+                    class="mr-3 cart-item-checkbox embroideryCheckbox accent-black" 
+                    data-item-key="${item.key}" 
+                    data-embroidery-price="${embroideryPrice}"
+                    ${embroideryPrice > 0 ? 'checked' : ''}
+                    onchange="toggleEmbroideryForm(this)">
+                     <label class="text-sm text-gray-600">
+                    Add Embroidered Name (+$${embroideryPrice.toFixed(2)})
+                  </label>
+                </div>
+                <div style="display: ${embroideryPrice > 0 ? 'block' : 'none'}">
+                  <div class="flex flex-col gap-2 px-4">
+                    <label class="text-sm text-gray-600">Embroidery Text:
+                      <input type="text" 
+                        class="border rounded p-1 embroideryTextInput" 
+                        data-item-key="${item.key}" 
+                        value="${item.properties?.['Embroidery Text'] || ''}">
+                    </label>
+                    <label class="text-sm text-gray-600">Embroidery Color:
+                      <select class="border rounded p-1 embroideryColorInput" data-item-key="${item.key}">
+                        ${embroidery_colorss.map(color => `
+                          <option value="${color}" ${item.properties?.['Embroidery Color'] === color ? 'selected' : ''}>
+                            ${color}
+                          </option>
+                        `).join('')}
+                      </select>
+                    </label>
+                    <label class="text-sm text-gray-600">Embroidery Font:
+                      <select class="border rounded p-1 embroideryFontInput" data-item-key="${item.key}">
+                        ${embroidery_fonts.map(font => {
+                          const fontParts = font.split(':');
+                          return `
+                            <option value="${fontParts[1]}" ${item.properties?.['Embroidery Font'] === fontParts[1] ? 'selected' : ''}>
+                              ${fontParts[0]}
+                            </option>
+                          `;
+                        }).join('')}
+                      </select>
+                    </label>
+                    <button onclick="updateEmbroidery('${item.key}')" 
+                      class="bg-[#5900FF] text-white py-1 px-4 rounded text-md">
+                      Update Embroidery
+                    </button>
+                  </div>
+                </div>
               </div>
-              <p class="px-2">${embroideryDetails}</p>
+              ${embroideryDetails}
             </span>
-          </div>`;
+          </div>
+        `;
       });
       cartTotalElement.textContent = `$${totalCartPrice.toFixed(2)}`;
       const freeDeliveryThreshold = 500;
       const remainingAmount = freeDeliveryThreshold - totalCartPrice;
       const progressPercentage = totalCartPrice >= freeDeliveryThreshold ? 100 : (totalCartPrice / freeDeliveryThreshold) * 100;
       progressBar.style.width = `${progressPercentage}%`;
+
       if (totalCartPrice >= freeDeliveryThreshold) {
         freeDeliveryMessage.textContent = "Free delivery applied!";
         freeDeliveryMessage.classList.remove('text-gray-600');
@@ -196,6 +240,40 @@ function updateCartDrawer() {
       }
     })
     .catch(error => console.error('Error fetching cart:', error));
+}
+
+
+function updateEmbroidery(itemKey) {
+    const textInput = document.querySelector(`.embroideryTextInput[data-item-key="${itemKey}"]`);
+    const colorInput = document.querySelector(`.embroideryColorInput[data-item-key="${itemKey}"]`);
+    const fontInput = document.querySelector(`.embroideryFontInput[data-item-key="${itemKey}"]`);
+    const checkboxInput = document.querySelector(`.embroideryCheckbox[data-item-key="${itemKey}"]`);
+    const embroideryPrice = parseFloat(checkboxInput.dataset.embroideryPrice) || 0;
+  
+    const properties = {
+        "Embroidery Text": textInput.value,
+        "Embroidery Color": colorInput.value,
+        "Embroidery Font": fontInput.value,
+        "Embroidery Price": checkboxInput.checked ? `$${embroideryPrice.toFixed(2)}` : "$0.00"
+    };
+    fetch('/cart/change.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            id: itemKey,
+            properties: properties
+        })
+    })
+    .then(() => {
+        updateCartDrawer();
+        checkboxInput.checked = properties["Embroidery Price"] !== "$0.00";
+    })
+    .catch(error => console.error("Error updating embroidery options:", error));
+}
+
+  function toggleEmbroideryForm(checkbox) {
+  const formContainer = checkbox.nextElementSibling;
+  formContainer.style.display = checkbox.checked ? 'block' : 'none';
 }
 
 function updateCartQuantity(itemKey, newQuantity) {
@@ -260,7 +338,6 @@ document.getElementById('cartItems').addEventListener('change', function(e) {
         } else {
             productPrice -= embroideryPrice;
         }
-
         fetch('/cart/change.js', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
